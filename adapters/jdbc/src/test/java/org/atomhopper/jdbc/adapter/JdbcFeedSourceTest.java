@@ -1,11 +1,20 @@
 package org.atomhopper.jdbc.adapter;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static junit.framework.Assert.assertEquals;
 
 import org.apache.abdera.Abdera;
 import org.apache.abdera.i18n.iri.IRI;
@@ -14,26 +23,19 @@ import org.apache.abdera.model.Feed;
 import org.atomhopper.adapter.AdapterHelper;
 import org.atomhopper.adapter.request.adapter.GetEntryRequest;
 import org.atomhopper.adapter.request.adapter.GetFeedRequest;
-import org.atomhopper.dbal.PageDirection;
+import org.atomhopper.jdbc.adapter.JdbcFeedSource.EntryRowMapper;
 import org.atomhopper.jdbc.model.PersistedEntry;
 import org.atomhopper.response.AdapterResponse;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.atomhopper.jdbc.adapter.JdbcFeedSource.EntryRowMapper;
-
-import static junit.framework.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
-
-import java.util.*;
 
 @RunWith(Enclosed.class)
+@SuppressWarnings("unchecked")
 public class JdbcFeedSourceTest {
 
     public static class WhenSourcingFeeds {
@@ -50,12 +52,8 @@ public class JdbcFeedSourceTest {
         private final String ENTRY_BODY = "<entry xmlns='http://www.w3.org/2005/Atom'></entry>";
         private final String FEED_NAME = "namespace/feed";
         private final String FORWARD = "forward";
-        private final String BACKWARD = "backward";
         private final String SINGLE_CAT = "+Cat1";
         private final String MULTI_CAT = "+Cat1+Cat2";
-        private final String AND_CAT = "(AND(cat=cat1)(cat=cat2))";
-        private final String OR_CAT = "(OR(cat=cat1)(cat=cat2))";
-        private final String NOT_CAT = "(NOT(OR(cat=cat1)(cat=cat2)))";
         private final String MOCK_LAST_MARKER = "last";
         private final String NEXT_ARCHIVE = "next-archive";
         private final String ARCHIVE_LINK = "http://archive.com/namespace/feed/archive";
@@ -242,24 +240,6 @@ public class JdbcFeedSourceTest {
         }
 
         @Test
-        public void shouldGetFeedHeadWithLastLinkMarker() throws Exception {
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                    any(EntryRowMapper.class),
-                    any(String.class),
-                    any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getDirection()).thenReturn("forward");
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            when(jdbcTemplate.queryForInt(any(String.class), any(Object[].class))).thenReturn(1);
-
-            IRI iri = jdbcFeedSource.getFeed(getFeedRequest).getBody().getLink(MOCK_LAST_MARKER).getHref();
-
-            assertTrue("Last link should contain \"marker=last\"", iri.toString().contains("marker=last"));
-        }
-
-        @Test
         public void shouldGetFeedHeadWithLastLinkMarkerAndCategory() throws Exception {
             Abdera localAbdera = new Abdera();
             when(getFeedRequest.getSearchQuery()).thenReturn(SINGLE_CAT);
@@ -317,72 +297,6 @@ public class JdbcFeedSourceTest {
         }
 
         @Test
-        public void shouldGetFeedWithMarkerForward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(FORWARD);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                    jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
-        public void shouldGetFeedWithMarkerBackward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(BACKWARD);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                    jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
-        public void shouldGetFeedWithCategoryWithMarkerForward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(FORWARD);
-            when(getFeedRequest.getSearchQuery()).thenReturn(SINGLE_CAT);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                    jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
-        public void shouldGetFeedWithCategoryWithMarkerBackward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(BACKWARD);
-            when(getFeedRequest.getSearchQuery()).thenReturn(SINGLE_CAT);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                    jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
         public void shouldGetFeedWithCategoriesWithMarkerForward() throws Exception {
             when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
             when(getFeedRequest.getDirection()).thenReturn(FORWARD);
@@ -397,74 +311,6 @@ public class JdbcFeedSourceTest {
             when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
             assertEquals("Should get a 200 response", HttpStatus.OK,
                     jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
-        public void shouldGetFeedWithCategoriesWithMarkerBackward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(BACKWARD);
-            when(getFeedRequest.getSearchQuery()).thenReturn(MULTI_CAT);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                    jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
-        public void shouldGetFeedWithAndCategoriesWithMarkerBackward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(BACKWARD);
-            when(getFeedRequest.getSearchQuery()).thenReturn(AND_CAT);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                         jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
-        public void shouldGetFeedWithOrCategoriesWithMarkerBackward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(BACKWARD);
-            when(getFeedRequest.getSearchQuery()).thenReturn(OR_CAT);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                         jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
-        }
-
-        @Test
-        public void shouldGetFeedWithNotCategoriesWithMarkerBackward() throws Exception {
-            when(getFeedRequest.getPageMarker()).thenReturn(MARKER_ID);
-            when(getFeedRequest.getDirection()).thenReturn(BACKWARD);
-            when(getFeedRequest.getSearchQuery()).thenReturn(NOT_CAT);
-            Abdera localAbdera = new Abdera();
-            when(jdbcTemplate.queryForObject(any(String.class),
-                                             any(EntryRowMapper.class),
-                                             any(String.class),
-                                             any(String.class))).thenReturn(persistedEntry);
-            when(getFeedRequest.getAbdera()).thenReturn(localAbdera);
-            when(getEntryRequest.getAbdera()).thenReturn(localAbdera);
-            when(jdbcTemplate.query(any(String.class), any(Object[].class), any(EntryRowMapper.class))).thenReturn(entryList);
-            assertEquals("Should get a 200 response", HttpStatus.OK,
-                         jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
         }
 
         @Test(expected = UnsupportedOperationException.class)
@@ -570,7 +416,7 @@ public class JdbcFeedSourceTest {
                     jdbcFeedSource.getFeed(getFeedRequest).getResponseStatus());
         }
 
-        @Test
+		@Test
         public void usingMarkerAndStartingAtShouldReturnBadRequest() throws Exception {
             Abdera localAbdera = new Abdera();
             when(getFeedRequest.getAbdera()).thenReturn(localAbdera);

@@ -1,17 +1,19 @@
 package org.atomhopper.jdbc.model;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.runner.RunWith;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
 
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 
 @RunWith(Enclosed.class)
 public class PersistedEntryTest {
@@ -27,12 +29,17 @@ public class PersistedEntryTest {
 
         @Before
         public void setUp() throws Exception {
-            persistedEntry = new PersistedEntry();
-
-            persistedEntry.setEntryId(ID);
-            persistedEntry.setEntryBody(ENTRY_BODY);
-            persistedEntry.setFeed(FEED);
-            persistedEntry.setCategories(new String[] {CATEGORY_VALUE1, CATEGORY_VALUE2});
+            persistedEntry = Mockito.mock(PersistedEntry.class);
+            when(persistedEntry.getCreationDate()).thenReturn(new Date());
+            when(persistedEntry.getDateLastUpdated()).thenReturn(new Date());
+            when(persistedEntry.getEntryId()).thenReturn(ID);
+            when(persistedEntry.getEntryBody()).thenReturn(ENTRY_BODY);
+            when(persistedEntry.getFeed()).thenReturn(FEED);
+            when(persistedEntry.getCategories()).thenReturn(new String[] {CATEGORY_VALUE1, CATEGORY_VALUE2});
+//            persistedEntry.setEntryId(ID);
+//            persistedEntry.setEntryBody(ENTRY_BODY);
+//            persistedEntry.setFeed(FEED);
+//            persistedEntry.setCategories(new String[] {CATEGORY_VALUE1, CATEGORY_VALUE2});
         }
 
         @Test
@@ -50,10 +57,11 @@ public class PersistedEntryTest {
             final Calendar localNow = Calendar.getInstance(TimeZone.getDefault());
             localNow.setTimeInMillis(System.currentTimeMillis());
             Date dateToSet = localNow.getTime();
-
+            when(persistedEntry.getCreationDate()).thenReturn(dateToSet);
+            when(persistedEntry.getDateLastUpdated()).thenReturn(dateToSet);
+            
             persistedEntry.setCreationDate(dateToSet);
             assertEquals("The creation date should be able to be set and read back", dateToSet, persistedEntry.getCreationDate());
-
             persistedEntry.setDateLastUpdated(dateToSet);
             assertEquals("The date last updated should be able to be set and read back", dateToSet, persistedEntry.getDateLastUpdated());
         }

@@ -364,7 +364,7 @@ public class SqlBuilderTest {
             DateTime startAt = isoDTF.parseDateTime("2014-03-03T08:51:32.000");
             SearchToSqlConverter searchToSqlConverter = new SearchToSqlConverter( map, PREFIX_SPLIT );
 
-            String result = new SqlBuilder( searchToSqlConverter )
+            new SqlBuilder( searchToSqlConverter )
                                     .searchType( SearchType.BY_TIMESTAMP_BACKWARD )
                                     .startingTimestamp(startAt)
                                     .toString();
@@ -375,7 +375,7 @@ public class SqlBuilderTest {
             DateTime startAt = isoDTF.parseDateTime("20140303T08:51:32.000Z");
             SearchToSqlConverter searchToSqlConverter = new SearchToSqlConverter( map, PREFIX_SPLIT );
 
-            String result = new SqlBuilder( searchToSqlConverter )
+            new SqlBuilder( searchToSqlConverter )
                                     .searchType( SearchType.BY_TIMESTAMP_BACKWARD )
                                     .startingTimestamp(startAt)
                                     .toString();

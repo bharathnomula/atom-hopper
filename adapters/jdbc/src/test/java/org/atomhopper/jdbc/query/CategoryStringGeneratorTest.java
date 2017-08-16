@@ -1,16 +1,15 @@
 package org.atomhopper.jdbc.query;
 
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import static junit.framework.Assert.assertEquals;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static junit.framework.Assert.assertEquals;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CategoryStringGeneratorTest {
 
@@ -58,30 +57,21 @@ public class CategoryStringGeneratorTest {
 
     @Test
     public void shouldGenerateStringForSingleCategory() {
-        List<String> result = CategoryStringGenerator.getPostgresCategoryString(SINGLE_CAT, Collections.EMPTY_MAP, null );
+        List<String> result = CategoryStringGenerator.getPostgresCategoryString(SINGLE_CAT, Collections.<String, String>emptyMap(), null );
         assertEquals( result.size(), 1 );
         assertEquals(result.get( 0 ), SINGLE_CAT_RESULT);
     }
 
     @Test
     public void shouldGenerateStringForMulitpleCategories() {
-        List<String> result = CategoryStringGenerator.getPostgresCategoryString(MULTI_CAT, Collections.EMPTY_MAP, null );
+        List<String> result = CategoryStringGenerator.getPostgresCategoryString(MULTI_CAT, Collections.<String, String>emptyMap(), null );
         assertEquals( result.size(), 1 );
         assertEquals(result.get( 0 ), MULTI_CAT_RESULT);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldFailEmpty1() {
-        List<String> result = CategoryStringGenerator.getPostgresCategoryString(EMPTY_CAT1, Collections.EMPTY_MAP, null );
+        CategoryStringGenerator.getPostgresCategoryString(EMPTY_CAT1, Collections.<String, String>emptyMap(), null );
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldFailEmpty2() {
-        List<String> result = CategoryStringGenerator.getPostgresCategoryString(EMPTY_CAT2, Collections.EMPTY_MAP, null );
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldFailEmpty3() {
-        List<String> result = CategoryStringGenerator.getPostgresCategoryString(EMPTY_CAT3, Collections.EMPTY_MAP, null );
-    }
 }
